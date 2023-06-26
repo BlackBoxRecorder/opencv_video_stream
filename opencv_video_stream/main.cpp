@@ -14,7 +14,7 @@ MJPEGStreamer streamer;
 int main(int argc, char* argv[])
 {
     if (argc < 2) {
-        std::cout << "videosource: " << argv[1] << std::endl;
+        std::cout << "missing argc. please specify a mp4 file or rtsp url" << std::endl;
         return -1;
     }
 
