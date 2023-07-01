@@ -1,23 +1,22 @@
 #include "cvstream.h"
-#include <cstdlib>
-#include <fstream>
 
 
 using namespace std;
 using namespace cv;
 
-cvstream::cvstream(std::string source)
+cvstream::cvstream(std::string source, std::string dist)
 {
     this->videosource = source;
+    this->stream_url = dist;
 }
 
 void cvstream::run()
 {
-    decodeThread = std::thread(&cvstream::decoding, this);
+    rtspThread = std::thread(&cvstream::read_rtsp, this);
 
-    if (decodeThread.joinable())
+    if (rtspThread.joinable())
     {
-        decodeThread.join();
+        rtspThread.join();
     }
 }
 
@@ -25,18 +24,18 @@ cvstream::~cvstream()
 {
     isWorking = false;
 
-    if (decodeThread.joinable())
+    if (rtspThread.joinable())
     {
-        decodeThread.join();
+        rtspThread.join();
     }
 
-    if (encodeThread.joinable())
+    if (streamThread.joinable())
     {
-        encodeThread.join();
+        streamThread.join();
     }
 }
 
-void cvstream::decoding()
+void cvstream::read_rtsp()
 {
     do
     {
@@ -51,14 +50,8 @@ void cvstream::decoding()
         else
         {
             // Obtain fps and frame count by get() method and print
-            // You can replace 5 with CAP_PROP_FPS as well, they are enumerations
             int fps = vid_capture.get(CAP_PROP_FPS);
             cout << "Frames per second :" << fps;
-
-            // Obtain frame_count using opencv built in frame count reading method
-            // You can replace 7 with CAP_PROP_FRAME_COUNT as well, they are enumerations
-            int frame_count = vid_capture.get(7);
-            cout << "  Frame count :" << frame_count;
         }
 
         streamer.start(8897);
@@ -66,7 +59,6 @@ void cvstream::decoding()
         // Read the frames to the last frame
         while (vid_capture.isOpened())
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(25));
             // Initialise frame matrix
             Mat frame;
 
@@ -78,15 +70,11 @@ void cvstream::decoding()
             {
                 std::lock_guard<std::mutex> guard(mutex);
 
-                //display frames
-                //imshow("Frame", frame);
-
-                // 启动解码线程
                 bool flag = this->frame.empty();
 
                 this->frame = frame.clone();
                 if (flag) {
-                    this->encodeThread = std::thread(&cvstream::encoding, this);
+                    this->streamThread = std::thread(&cvstream::stream_publish, this);
                 }
             }
 
@@ -100,30 +88,29 @@ void cvstream::decoding()
         }
         // Release the video capture object
         vid_capture.release();
-        destroyAllWindows();
+
         return;
 
     } while (false);
 
 }
 
-void cvstream::encoding()
+void cvstream::stream_publish()
 {
     while (isWorking)
     {
         cv::Mat frame;
         {
             std::lock_guard<std::mutex> guard(mutex);
-            //frame = this->frame.clone();
-            cv::resize(this->frame, frame, cv::Size(1280, 720));
+            frame = this->frame.clone();
+            //cv::resize(this->frame, frame, cv::Size(1280, 720));
         }
 
         if (!frame.empty())
         {
             std::vector<uchar> buff_bgr;
             cv::imencode(".jpg", frame, buff_bgr);
-            streamer.publish("/bgr", std::string(buff_bgr.begin(), buff_bgr.end()));
+            streamer.publish("/" + stream_url, std::string(buff_bgr.begin(), buff_bgr.end()));
         }
     }
-
 }

@@ -13,8 +13,11 @@
 class cvstream
 {
 private:
-    //mp4 file , rtsp url ... 
+    //rtsp url
     std::string videosource;
+
+    //http stream url
+    std::string stream_url;
 
     std::atomic_bool isWorking = true;
 
@@ -23,15 +26,15 @@ private:
     nadjieb::MJPEGStreamer streamer;
 
 private:
-    std::thread decodeThread;
-    std::thread encodeThread;
+    std::thread rtspThread;
+    std::thread streamThread;
 
 public:
-    cvstream(std::string source);
+    cvstream(std::string source, std::string dist);
     ~cvstream();
     void run();
 
 private:
-    void decoding();
-    void encoding();
+    void read_rtsp();
+    void stream_publish();
 };
