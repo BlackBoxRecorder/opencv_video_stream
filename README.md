@@ -32,7 +32,7 @@
 在终端运行：
 
 ```powershell
- .\opencv_video_stream.exe rtsp://127.0.0.1:8554/stream /test
+ .\opencv_video_stream.exe rtsp://127.0.0.1:8554/stream test
 ```
 
 网页视频打开：http://127.0.0.1:8897/test
