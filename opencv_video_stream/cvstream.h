@@ -18,6 +18,10 @@ private:
   //http stream url
   std::string stream_url;
 
+  int height = 720;
+  int width = 1280;
+  int quality = 100;
+
   std::atomic_bool isWorking = true;
 
   cv::Mat frame;
@@ -29,11 +33,11 @@ private:
   std::thread streamThread;
 
 public:
-  cvstream(std::string source, std::string dist);
+  cvstream(std::string source, std::string dist, int width, int height, int quality);
   ~cvstream();
   void run();
 
 private:
-  void read_rtsp();
+  void read_source();
   void stream_publish();
 };

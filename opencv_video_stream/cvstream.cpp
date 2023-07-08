@@ -3,15 +3,18 @@
 using namespace std;
 using namespace cv;
 
-cvstream::cvstream(std::string source, std::string dist)
+cvstream::cvstream(std::string source, std::string dist, int width, int height, int quality)
 {
   this->videosource = source;
   this->stream_url = dist;
+  this->height = height;
+  this->width = width;
+  this->quality = quality;
 }
 
 void cvstream::run()
 {
-  rtspThread = std::thread(&cvstream::read_rtsp, this);
+  rtspThread = std::thread(&cvstream::read_source, this);
 
   if (rtspThread.joinable())
   {
@@ -34,7 +37,7 @@ cvstream::~cvstream()
   }
 }
 
-void cvstream::read_rtsp()
+void cvstream::read_source()
 {
   do
   {
@@ -81,8 +84,11 @@ void cvstream::read_rtsp()
       {
         cout << "video end" << endl;
         isWorking = false;
+        streamer.stop();
         break;
       }
+
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
     }
     // Release the video capture object
@@ -96,20 +102,28 @@ void cvstream::read_rtsp()
 
 void cvstream::stream_publish()
 {
+  std::vector<int> params = { cv::IMWRITE_JPEG_QUALITY, quality };
+
   while (isWorking)
   {
     cv::Mat frame;
     {
       std::lock_guard<std::mutex> guard(mutex);
       frame = this->frame.clone();
-      //cv::resize(this->frame, frame, cv::Size(1280, 720));
+      if (width > 0 && height > 0)
+      {
+        cv::resize(this->frame, frame, cv::Size(width, height));
+      }
     }
 
     if (!frame.empty())
     {
       std::vector<uchar> buff_bgr;
-      cv::imencode(".jpg", frame, buff_bgr);
+      cv::imencode(".jpg", frame, buff_bgr, params);
       streamer.publish("/" + stream_url, std::string(buff_bgr.begin(), buff_bgr.end()));
     }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
   }
 }
