@@ -9,32 +9,31 @@
 
 #include <opencv2/opencv.hpp>
 
-
 class cvstream
 {
 private:
-    //rtsp url
-    std::string videosource;
+  //rtsp url
+  std::string videosource;
 
-    //http stream url
-    std::string stream_url;
+  //http stream url
+  std::string stream_url;
 
-    std::atomic_bool isWorking = true;
+  std::atomic_bool isWorking = true;
 
-    cv::Mat frame;
-    std::mutex mutex;
-    nadjieb::MJPEGStreamer streamer;
+  cv::Mat frame;
+  std::mutex mutex;
+  nadjieb::MJPEGStreamer streamer;
 
 private:
-    std::thread rtspThread;
-    std::thread streamThread;
+  std::thread rtspThread;
+  std::thread streamThread;
 
 public:
-    cvstream(std::string source, std::string dist);
-    ~cvstream();
-    void run();
+  cvstream(std::string source, std::string dist);
+  ~cvstream();
+  void run();
 
 private:
-    void read_rtsp();
-    void stream_publish();
+  void read_rtsp();
+  void stream_publish();
 };
